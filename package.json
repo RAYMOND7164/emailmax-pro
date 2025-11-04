@@ -1,0 +1,14 @@
+{
+  "name": "emailmax-pro",
+  "version": "1.0.0",
+  "description": "Plateforme d'email marketing professionnelle",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s .",
+    "build": "echo 'Build complete'"
+  },
+  "dependencies": {},
+  "keywords": ["email", "marketing", "newsletter"],
+  "author": "EmailMax Pro",
+  "license": "MIT"
+}
