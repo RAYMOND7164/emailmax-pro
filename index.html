@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmailMax Pro - Plateforme Email Marketing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4A4ACC'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <style>
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .gradient-bg { background: linear-gradient(135deg, #5D5CDE 0%, #4A4ACC 100%); }
+        .glass { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.3s ease; }
+        .auth-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 transition-colors duration-300">
+
+<div id="app" class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                            <i data-lucide="mail" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <span class="font-bold text-xl text-gray-900 dark:text-white">EmailMax Pro</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600 dark:text-gray-300" id="user-email">admin@emailmax.fr</span>
+                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                        <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="flex">
+        <aside class="w-64 bg-white dark:bg-gray-800 shadow-lg h-screen sticky top-0 border-r border-gray-200 dark:border-gray-700">
+            <nav class="mt-8 px-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" onclick="showSection('dashboard')" class="nav-item flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showSection('contacts')" class="nav-item flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="users" class="w-5 h-5 mr-3"></i>
+                            Contacts
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showSection('campaigns')" class="nav-item flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="send" class="w-5 h-5 mr-3"></i>
+                            Campagnes
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showSection('templates')" class="nav-item flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="layout-template" class="w-5 h-5 mr-3"></i>
+                            Templates
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="showSection('analytics')" class="nav-item flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i data-lucide="trending-up" class="w-5 h-5 mr-3"></i>
+                            Analytics
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 bg-gray-50 dark:bg-gray-900">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="section">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Vue d'ensemble de vos campagnes email</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg card-hover border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Total Contacts</p>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="total-contacts">0</p>
+                            </div>
+                            <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                <i data-lucide="users" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg card-hover border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Emails Envoyés</p>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="emails-sent">0</p>
+                            </div>
+                            <div class="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                                <i data-lucide="send" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg card-hover border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Taux d'Ouverture</p>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="open-rate">0%</p>
+                            </div>
+                            <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                                <i data-lucide="eye" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg card-hover border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Taux de Clic</p>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="click-rate">0%</p>
+                            </div>
+                            <div class="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                                <i data-lucide="mouse-pointer-click" class="w-6 h-6 text-orange-600 dark:text-orange-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Campaigns -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Campagnes Récentes</h2>
+                    </div>
+                    <div class="p-6">
+                        <div id="recent-campaigns" class="space-y-4">
+                            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                <i data-lucide="mail" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                                <p>Aucune campagne encore. Créez votre première campagne !</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts Section -->
+            <div id="contacts-section" class="section hidden">
+                <div class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Gestion des Contacts</h1>
+                        <p class="text-gray-600 dark:text-gray-400 mt-2">Importez et gérez vos listes de contacts</p>
+                    </div>
+                    <button onclick="showImportModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                        <i data-lucide="upload" class="w-5 h-5"></i>
+                        <span>Importer Contacts</span>
+                    </button>
+                </div>
+
+                <!-- Import Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Contacts Actifs</h3>
+                        <p class="text-3xl font-bold text-green-600" id="active-contacts">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Désabonnés</h3>
+                        <p class="text-3xl font-bold text-red-600" id="unsubscribed-contacts">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Bounces</h3>
+                        <p class="text-3xl font-bold text-orange-600" id="bounced-contacts">0</p>
+                    </div>
+                </div>
+
+                <!-- Contacts Table -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Liste des Contacts</h2>
+                            <div class="flex space-x-4">
+                                <input type="text" id="search-contacts" placeholder="Rechercher..." class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                <select id="filter-status" class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                    <option value="">Tous</option>
+                                    <option value="active">Actifs</option>
+                                    <option value="unsubscribed">Désabonnés</option>
+                                    <option value="bounced">Bounces</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div id="contacts-table" class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Email</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Nom</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Statut</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Ajouté le</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contacts-tbody">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                            <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                                            <p>Aucun contact importé. Commencez par importer votre première liste !</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaigns Section -->
+            <div id="campaigns-section" class="section hidden">
+                <div class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Campagnes Email</h1>
+                        <p class="text-gray-600 dark:text-gray-400 mt-2">Créez et gérez vos campagnes d'email marketing</p>
+                    </div>
+                    <button onclick="showCampaignModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center space-x-2">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        <span>Nouvelle Campagne</span>
+                    </button>
+                </div>
+
+                <!-- Campaigns Grid -->
+                <div id="campaigns-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="col-span-full">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+                            <i data-lucide="send" class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500"></i>
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Aucune campagne</h3>
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Créez votre première campagne email pour commencer</p>
+                            <button onclick="showCampaignModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity">
+                                Créer une campagne
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Templates Section -->
+            <div id="templates-section" class="section hidden">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Templates Email</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Modèles professionnels pour vos campagnes</p>
+                </div>
+
+                <!-- Templates Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden card-hover">
+                        <div class="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                            <h3 class="font-semibold">Newsletter Moderne</h3>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Template élégant pour newsletters avec sections organisées et call-to-action.</p>
+                            <button onclick="useTemplate('newsletter')" class="w-full gradient-bg text-white py-2 rounded-lg hover:opacity-90 transition-opacity">
+                                Utiliser ce template
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden card-hover">
+                        <div class="p-4 bg-gradient-to-r from-green-500 to-teal-600 text-white">
+                            <h3 class="font-semibold">Promotion</h3>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Template pour promotions et offres spéciales avec design accrocheur.</p>
+                            <button onclick="useTemplate('promotion')" class="w-full gradient-bg text-white py-2 rounded-lg hover:opacity-90 transition-opacity">
+                                Utiliser ce template
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden card-hover">
+                        <div class="p-4 bg-gradient-to-r from-orange-500 to-red-600 text-white">
+                            <h3 class="font-semibold">Événement</h3>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-gray-600 dark:text-gray-400 mb-4">Template pour invitations d'événements et webinaires.</p>
+                            <button onclick="useTemplate('event')" class="w-full gradient-bg text-white py-2 rounded-lg hover:opacity-90 transition-opacity">
+                                Utiliser ce template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analytics-section" class="section hidden">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">Analysez les performances de vos campagnes</p>
+                </div>
+
+                <!-- Analytics Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Évolution des Envois</h3>
+                        <div class="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="text-center">
+                                <i data-lucide="bar-chart" class="w-16 h-16 mx-auto mb-4 text-gray-400"></i>
+                                <p class="text-gray-600 dark:text-gray-400">Graphique des envois sera affiché ici</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Taux d'Engagement</h3>
+                        <div class="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="text-center">
+                                <i data-lucide="pie-chart" class="w-16 h-16 mx-auto mb-4 text-gray-400"></i>
+                                <p class="text-gray-600 dark:text-gray-400">Graphique d'engagement sera affiché ici</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performing Campaigns -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Campagnes les Plus Performantes</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <i data-lucide="trending-up" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                            <p>Les données d'analytics s'afficheront après vos premières campagnes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Import Contacts Modal -->
+    <div id="import-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Importer des Contacts</h2>
+                    <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Méthode d'import
+                    </label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="import-method" value="csv" checked class="mr-2">
+                            <span class="text-gray-700 dark:text-gray-300">Fichier CSV</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="import-method" value="manual" class="mr-2">
+                            <span class="text-gray-700 dark:text-gray-300">Saisie manuelle</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="csv-import" class="import-method">
+                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                        <i data-lucide="upload" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Glissez votre fichier CSV ici ou cliquez pour sélectionner</p>
+                        <input type="file" id="csv-file" accept=".csv" class="hidden">
+                        <button onclick="document.getElementById('csv-file').click()" class="gradient-bg text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                            Choisir un fichier
+                        </button>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Format: email,nom,prénom</p>
+                    </div>
+                </div>
+
+                <div id="manual-import" class="import-method hidden">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Emails (un par ligne)
+                            </label>
+                            <textarea id="manual-emails" rows="8" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="exemple1@email.com&#10;exemple2@email.com&#10;exemple3@email.com"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button onclick="closeImportModal()" class="px-6 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        Annuler
+                    </button>
+                    <button onclick="importContacts()" class="gradient-bg text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        Importer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Modal -->
+    <div id="campaign-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Nouvelle Campagne Email</h2>
+                    <button onclick="closeCampaignModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form id="campaign-form" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Nom de la campagne
+                            </label>
+                            <input type="text" id="campaign-name" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Ex: Newsletter Février 2024">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Sujet de l'email
+                            </label>
+                            <input type="text" id="campaign-subject" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Ex: Découvrez nos nouveautés">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Contenu de l'email
+                        </label>
+                        <textarea id="campaign-content" rows="12" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" placeholder="Rédigez votre message ici..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Envoyer à
+                            </label>
+                            <select id="campaign-audience" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                <option value="all">Tous les contacts actifs</option>
+                                <option value="recent">Contacts récents (30 jours)</option>
+                                <option value="engaged">Contacts engagés</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Programmer l'envoi
+                            </label>
+                            <select id="campaign-schedule" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                                <option value="now">Envoyer maintenant</option>
+                                <option value="schedule">Programmer pour plus tard</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="schedule-datetime" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Date et heure d'envoi
+                        </label>
+                        <input type="datetime-local" id="campaign-datetime" class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="closeCampaignModal()" class="px-6 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                            Annuler
+                        </button>
+                        <button type="button" onclick="createCampaign()" class="gradient-bg text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                            <span id="campaign-submit-text">Créer la campagne</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div id="progress-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="text-center">
+                    <div class="mb-4">
+                        <i data-lucide="send" class="w-16 h-16 mx-auto text-primary animate-pulse-slow"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Envoi en cours...</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4" id="progress-text">Préparation de la campagne</p>
+                    
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-4">
+                        <div id="progress-bar" class="gradient-bg h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <span id="progress-count">0</span> / <span id="progress-total">0</span> emails envoyés
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuration API
+const SUPABASE_URL = 'https://mmkzsjrrhxyxqifxzdgw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ta3pzanJyaHh5eHFpZnh6ZGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMzU3NzMsImV4cCI6MjA3NzgxMTc3M30.xPCqWmN67sS-wagKqVUiyHVK95VvMpnpGSnQv_AKHp0';
+const BREVO_API_KEY = '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';
+
+// Initialize Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Global state
+let currentSection = 'dashboard';
+let user = null;
+let contacts = [];
+let campaigns = [];
+let analytics = {
+    totalContacts: 0,
+    emailsSent: 0,
+    openRate: 0,
+    clickRate: 0,
+    activeContacts: 0,
+    unsubscribedContacts: 0,
+    bouncedContacts: 0
+};
+
+// Dark mode
+function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+}
+
+// Initialize dark mode
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+    if (event.matches) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+});
+
+// Navigation
+function showSection(section) {
+    document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
+    document.getElementById(section + '-section').classList.remove('hidden');
+    
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-primary', 'text-white'));
+    event.target.closest('.nav-item').classList.add('bg-primary', 'text-white');
+    
+    currentSection = section;
+    
+    if (section === 'dashboard') {
+        updateDashboard();
+    } else if (section === 'contacts') {
+        updateContactsTable();
+    }
+}
+
+// Import contacts modal
+function showImportModal() {
+    document.getElementById('import-modal').classList.remove('hidden');
+    document.getElementById('import-modal').classList.add('flex');
+}
+
+function closeImportModal() {
+    document.getElementById('import-modal').classList.add('hidden');
+    document.getElementById('import-modal').classList.remove('flex');
+}
+
+// Campaign modal
+function showCampaignModal() {
+    document.getElementById('campaign-modal').classList.remove('hidden');
+    document.getElementById('campaign-modal').classList.add('flex');
+}
+
+function closeCampaignModal() {
+    document.getElementById('campaign-modal').classList.add('hidden');
+    document.getElementById('campaign-modal').classList.remove('flex');
+}
+
+// Import method toggle
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'import-method') {
+        document.querySelectorAll('.import-method').forEach(el => el.classList.add('hidden'));
+        if (e.target.value === 'csv') {
+            document.getElementById('csv-import').classList.remove('hidden');
+        } else {
+            document.getElementById('manual-import').classList.remove('hidden');
+        }
+    }
+    
+    if (e.target.id === 'campaign-schedule') {
+        const scheduleDiv = document.getElementById('schedule-datetime');
+        if (e.target.value === 'schedule') {
+            scheduleDiv.classList.remove('hidden');
+        } else {
+            scheduleDiv.classList.add('hidden');
+        }
+    }
+});
+
+// CSV file handling
+document.getElementById('csv-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csv = e.target.result;
+            parseCSV(csv);
+        };
+        reader.readAsText(file);
+    }
+});
+
+// Parse CSV function
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const parsedContacts = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+            const values = lines[i].split(',');
+            const contact = {};
+            
+            headers.forEach((header, index) => {
+                if (values[index]) {
+                    contact[header] = values[index].trim();
+                }
+            });
+            
+            if (contact.email && isValidEmail(contact.email)) {
+                parsedContacts.push({
+                    email: contact.email,
+                    nom: contact.nom || contact.name || '',
+                    prenom: contact.prenom || contact.firstname || '',
+                    status: 'active',
+                    dateAdded: new Date().toLocaleDateString('fr-FR')
+                });
+            }
+        }
+    }
+    
+    showImportPreview(parsedContacts);
+}
+
+// Import contacts function
+function importContacts() {
+    const method = document.querySelector('input[name="import-method"]:checked').value;
+    let newContacts = [];
+    
+    if (method === 'csv') {
+        // CSV data is already parsed
+        const csvFile = document.getElementById('csv-file').files[0];
+        if (!csvFile) {
+            showNotification('Veuillez sélectionner un fichier CSV', 'error');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csv = e.target.result;
+            const lines = csv.split('\n');
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = lines[i].split(',');
+                    const email = values[0]?.trim();
+                    const nom = values[1]?.trim() || '';
+                    const prenom = values[2]?.trim() || '';
+                    
+                    if (email && isValidEmail(email)) {
+                        newContacts.push({
+                            email: email,
+                            nom: nom,
+                            prenom: prenom,
+                            status: 'active',
+                            dateAdded: new Date().toLocaleDateString('fr-FR')
+                        });
+                    }
+                }
+            }
+            
+            processImport(newContacts);
+        };
+        reader.readAsText(csvFile);
+    } else {
+        // Manual input
+        const emailsText = document.getElementById('manual-emails').value;
+        const emailLines = emailsText.split('\n');
+        
+        emailLines.forEach(line => {
+            const email = line.trim();
+            if (email && isValidEmail(email)) {
+                newContacts.push({
+                    email: email,
+                    nom: '',
+                    prenom: '',
+                    status: 'active',
+                    dateAdded: new Date().toLocaleDateString('fr-FR')
+                });
+            }
+        });
+        
+        processImport(newContacts);
+    }
+}
+
+function processImport(newContacts) {
+    // Remove duplicates
+    const existingEmails = contacts.map(c => c.email);
+    const uniqueContacts = newContacts.filter(c => !existingEmails.includes(c.email));
+    
+    contacts.push(...uniqueContacts);
+    
+    // Update analytics
+    updateAnalytics();
+    
+    closeImportModal();
+    showNotification(`${uniqueContacts.length} contacts importés avec succès!`, 'success');
+    
+    // Reset form
+    document.getElementById('csv-file').value = '';
+    document.getElementById('manual-emails').value = '';
+    
+    updateContactsTable();
+    updateDashboard();
+}
+
+// Create campaign function
+async function createCampaign() {
+    const name = document.getElementById('campaign-name').value;
+    const subject = document.getElementById('campaign-subject').value;
+    const content = document.getElementById('campaign-content').value;
+    const audience = document.getElementById('campaign-audience').value;
+    const schedule = document.getElementById('campaign-schedule').value;
+    
+    if (!name || !subject || !content) {
+        showNotification('Veuillez remplir tous les champs obligatoires', 'error');
+        return;
+    }
+    
+    const campaign = {
+        id: Date.now(),
+        name: name,
+        subject: subject,
+        content: content,
+        audience: audience,
+        schedule: schedule,
+        status: schedule === 'now' ? 'sending' : 'scheduled',
+        created: new Date().toLocaleDateString('fr-FR'),
+        sent: 0,
+        opens: 0,
+        clicks: 0
+    };
+    
+    campaigns.push(campaign);
+    closeCampaignModal();
+    
+    if (schedule === 'now') {
+        await sendCampaign(campaign);
+    } else {
+        showNotification('Campagne programmée avec succès!', 'success');
+    }
+    
+    updateCampaignsGrid();
+    updateDashboard();
+    
+    // Reset form
+    document.getElementById('campaign-form').reset();
+}
+
+// Send campaign with Brevo API
+async function sendCampaign(campaign) {
+    const activeContacts = contacts.filter(c => c.status === 'active');
+    
+    if (activeContacts.length === 0) {
+        showNotification('Aucun contact actif trouvé', 'error');
+        return;
+    }
+    
+    showProgressModal(activeContacts.length);
+    
+    const batchSize = 10; // Brevo recommends smaller batches
+    let sent = 0;
+    let errors = 0;
+    
+    for (let i = 0; i < activeContacts.length; i += batchSize) {
+        const batch = activeContacts.slice(i, i + batchSize);
+        
+        try {
+            // Send emails via Brevo API
+            await sendEmailBatch(batch, campaign);
+            sent += batch.length;
+            
+            // Simulate some opens and clicks for demo
+            const opens = Math.floor(batch.length * (0.2 + Math.random() * 0.3));
+            const clicks = Math.floor(opens * (0.1 + Math.random() * 0.2));
+            
+            campaign.sent += batch.length;
+            campaign.opens += opens;
+            campaign.clicks += clicks;
+            
+        } catch (error) {
+            console.error('Erreur envoi batch:', error);
+            errors += batch.length;
+            showNotification(`Erreur lors de l'envoi à ${batch.length} contacts`, 'error');
+        }
+        
+        updateProgress(sent, activeContacts.length);
+        
+        // Pause between batches to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    campaign.status = 'sent';
+    campaign.openRate = campaign.sent > 0 ? ((campaign.opens / campaign.sent) * 100).toFixed(1) : '0';
+    campaign.clickRate = campaign.sent > 0 ? ((campaign.clicks / campaign.sent) * 100).toFixed(1) : '0';
+    
+    // Update analytics
+    analytics.emailsSent += campaign.sent;
+    if (analytics.emailsSent > 0) {
+        analytics.openRate = ((campaigns.reduce((acc, c) => acc + c.opens, 0) / analytics.emailsSent) * 100).toFixed(1);
+        analytics.clickRate = ((campaigns.reduce((acc, c) => acc + c.clicks, 0) / analytics.emailsSent) * 100).toFixed(1);
+    }
+    
+    setTimeout(() => {
+        hideProgressModal();
+        const message = errors > 0 
+            ? `Campagne "${campaign.name}" envoyée à ${campaign.sent} contacts (${errors} erreurs)`
+            : `Campagne "${campaign.name}" envoyée avec succès à ${campaign.sent} contacts!`;
+        showNotification(message, errors > 0 ? 'warning' : 'success');
+        updateDashboard();
+        updateCampaignsGrid();
+    }, 1000);
+}
+
+// Send email batch via Brevo API
+async function sendEmailBatch(contacts, campaign) {
+    const emailData = {
+        sender: {
+            name: "EmailMax Pro",
+            email: "raymond7164@gmail.com"
+        },
+        to: contacts.map(contact => ({
+            email: contact.email,
+            name: `${contact.prenom} ${contact.nom}`.trim() || contact.email
+        })),
+        subject: campaign.subject,
+        htmlContent: formatEmailContent(campaign.content, contacts[0]),
+        textContent: campaign.content.replace(/\[PRENOM\]/g, contacts[0].prenom || '')
+    };
+    
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'api-key': BREVO_API_KEY
+        },
+        body: JSON.stringify(emailData)
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Erreur Brevo: ${error.message || 'Erreur inconnue'}`);
+    }
+    
+    return await response.json();
+}
+
+// Format email content with personalization
+function formatEmailContent(content, contact) {
+    let formattedContent = content
+        .replace(/\[PRENOM\]/g, contact.prenom || 'Cher(e) contact')
+        .replace(/\[NOM\]/g, contact.nom || '')
+        .replace(/\[EMAIL\]/g, contact.email || '')
+        .replace(/\[DATE\]/g, new Date().toLocaleDateString('fr-FR'))
+        .replace(/\[UNSUBSCRIBE_LINK\]/g, '#unsubscribe')
+        .replace(/\n/g, '<br>');
+    
+    // Simple HTML wrapper
+    return `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            ${formattedContent}
+        </div>
+    `;
+}
+
+// Progress modal functions
+function showProgressModal(total) {
+    document.getElementById('progress-modal').classList.remove('hidden');
+    document.getElementById('progress-modal').classList.add('flex');
+    document.getElementById('progress-total').textContent = total;
+    document.getElementById('progress-count').textContent = '0';
+    document.getElementById('progress-bar').style.width = '0%';
+}
+
+function updateProgress(sent, total) {
+    const percentage = (sent / total) * 100;
+    document.getElementById('progress-count').textContent = sent;
+    document.getElementById('progress-bar').style.width = percentage + '%';
+    
+    if (sent === total) {
+        document.getElementById('progress-text').textContent = 'Envoi terminé!';
+    } else {
+        document.getElementById('progress-text').textContent = `Envoi en cours... ${sent}/${total}`;
+    }
+}
+
+function hideProgressModal() {
+    document.getElementById('progress-modal').classList.add('hidden');
+    document.getElementById('progress-modal').classList.remove('flex');
+}
+
+// Update functions
+function updateDashboard() {
+    document.getElementById('total-contacts').textContent = contacts.length;
+    document.getElementById('emails-sent').textContent = analytics.emailsSent;
+    document.getElementById('open-rate').textContent = analytics.openRate + '%';
+    document.getElementById('click-rate').textContent = analytics.clickRate + '%';
+    
+    // Update recent campaigns
+    const recentCampaignsEl = document.getElementById('recent-campaigns');
+    if (campaigns.length === 0) {
+        recentCampaignsEl.innerHTML = `
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i data-lucide="mail" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                <p>Aucune campagne encore. Créez votre première campagne !</p>
+            </div>
+        `;
+    } else {
+        recentCampaignsEl.innerHTML = campaigns.slice(-3).reverse().map(campaign => `
+            <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">${campaign.name}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Créée le ${campaign.created}</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block px-3 py-1 text-xs rounded-full ${getStatusColor(campaign.status)}">${getStatusText(campaign.status)}</span>
+                    ${campaign.sent > 0 ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${campaign.sent} envoyés</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    lucide.createIcons();
+}
+
+function updateContactsTable() {
+    document.getElementById('active-contacts').textContent = contacts.filter(c => c.status === 'active').length;
+    document.getElementById('unsubscribed-contacts').textContent = contacts.filter(c => c.status === 'unsubscribed').length;
+    document.getElementById('bounced-contacts').textContent = contacts.filter(c => c.status === 'bounced').length;
+    
+    const tbody = document.getElementById('contacts-tbody');
+    if (contacts.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <i data-lucide="users" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                    <p>Aucun contact importé. Commencez par importer votre première liste !</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = contacts.map(contact => `
+            <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="py-3 px-4 text-gray-900 dark:text-white">${contact.email}</td>
+                <td class="py-3 px-4 text-gray-900 dark:text-white">${contact.nom} ${contact.prenom}</td>
+                <td class="py-3 px-4">
+                    <span class="inline-block px-2 py-1 text-xs rounded-full ${getContactStatusColor(contact.status)}">
+                        ${getContactStatusText(contact.status)}
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-gray-600 dark:text-gray-400">${contact.dateAdded}</td>
+                <td class="py-3 px-4">
+                    <button onclick="editContact('${contact.email}')" class="text-primary hover:text-primary-dark mr-2">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteContact('${contact.email}')" class="text-red-600 hover:text-red-800">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    lucide.createIcons();
+}
+
+function updateCampaignsGrid() {
+    const grid = document.getElementById('campaigns-grid');
+    if (campaigns.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+                    <i data-lucide="send" class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500"></i>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Aucune campagne</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Créez votre première campagne email pour commencer</p>
+                    <button onclick="showCampaignModal()" class="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity">
+                        Créer une campagne
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        grid.innerHTML = campaigns.map(campaign => `
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden card-hover">
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${campaign.name}</h3>
+                        <span class="inline-block px-3 py-1 text-xs rounded-full ${getStatusColor(campaign.status)}">${getStatusText(campaign.status)}</span>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">${campaign.subject}</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Créée le:</span>
+                            <span class="text-gray-900 dark:text-white">${campaign.created}</span>
+                        </div>
+                        ${campaign.sent > 0 ? `
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Envoyés:</span>
+                                <span class="text-gray-900 dark:text-white">${campaign.sent}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Taux d'ouverture:</span>
+                                <span class="text-gray-900 dark:text-white">${campaign.openRate}%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Taux de clic:</span>
+                                <span class="text-gray-900 dark:text-white">${campaign.clickRate}%</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="mt-4 flex space-x-2">
+                        ${campaign.status === 'draft' ? `
+                            <button onclick="sendCampaign(${JSON.stringify(campaign).replace(/"/g, '&quot;')})" class="flex-1 gradient-bg text-white py-2 rounded-lg hover:opacity-90 transition-opacity text-sm">
+                                Envoyer
+                            </button>
+                        ` : ''}
+                        <button onclick="viewCampaign(${campaign.id})" class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                            Voir détails
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    lucide.createIcons();
+}
+
+// Helper functions
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+        case 'sending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+        case 'sent': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+}
+
+function getStatusText(status) {
+    switch(status) {
+        case 'draft': return 'Brouillon';
+        case 'scheduled': return 'Programmée';
+        case 'sending': return 'En cours';
+        case 'sent': return 'Envoyée';
+        default: return status;
+    }
+}
+
+function getContactStatusColor(status) {
+    switch(status) {
+        case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        case 'unsubscribed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+        case 'bounced': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+}
+
+function getContactStatusText(status) {
+    switch(status) {
+        case 'active': return 'Actif';
+        case 'unsubscribed': return 'Désabonné';
+        case 'bounced': return 'Bounce';
+        default: return status;
+    }
+}
+
+function updateAnalytics() {
+    analytics.totalContacts = contacts.length;
+    analytics.activeContacts = contacts.filter(c => c.status === 'active').length;
+    analytics.unsubscribedContacts = contacts.filter(c => c.status === 'unsubscribed').length;
+    analytics.bouncedContacts = contacts.filter(c => c.status === 'bounced').length;
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+function useTemplate(templateType) {
+    showCampaignModal();
+    
+    const templates = {
+        newsletter: {
+            subject: "Newsletter - Découvrez nos dernières actualités",
+            content: `Bonjour [PRENOM],
+
+Nous espérons que vous allez bien ! Voici les dernières actualités de notre entreprise :
+
+🔥 NOUVEAUTÉS
+• Nouveau produit lancé avec succès
+• Mise à jour de nos services
+• Événement à venir
+
+📈 CHIFFRES CLÉS
+• 1000+ clients satisfaits
+• 95% de satisfaction
+• Croissance de 50%
+
+💡 CONSEIL DU MOIS
+N'hésitez pas à nous contacter pour toute question ou suggestion.
+
+Cordialement,
+L'équipe EmailMax Pro
+
+---
+Se désabonner : [UNSUBSCRIBE_LINK]`
+        },
+        promotion: {
+            subject: "🎉 Offre Spéciale - Réduction de 50% limitée",
+            content: `Bonjour [PRENOM],
+
+🎉 OFFRE EXCEPTIONNELLE ! 🎉
+
+Profitez de notre promotion exclusive :
+• 50% de réduction sur tous nos produits
+• Livraison gratuite
+• Garantie satisfait ou remboursé
+
+⏰ Offre valable jusqu'au [DATE]
+
+👆 Cliquez ici pour en profiter : [LIEN_PROMOTION]
+
+Cette offre est limitée dans le temps, ne la manquez pas !
+
+L'équipe EmailMax Pro
+
+---
+Se désabonner : [UNSUBSCRIBE_LINK]`
+        },
+        event: {
+            subject: "🎯 Invitation - Webinaire gratuit sur le marketing digital",
+            content: `Bonjour [PRENOM],
+
+🎯 WEBINAIRE GRATUIT 🎯
+
+Vous êtes invité(e) à notre webinaire exclusif :
+"Les secrets du marketing digital en 2024"
+
+📅 Date : [DATE_EVENEMENT]
+⏰ Heure : [HEURE_EVENEMENT]
+🎥 Plateforme : Zoom
+
+Au programme :
+• Stratégies marketing actuelles
+• Outils indispensables
+• Session Q&A en direct
+
+👆 Réservez votre place gratuitement : [LIEN_INSCRIPTION]
+
+Places limitées !
+
+À bientôt,
+L'équipe EmailMax Pro
+
+---
+Se désabonner : [UNSUBSCRIBE_LINK]`
+        }
+    };
+    
+    const template = templates[templateType];
+    if (template) {
+        document.getElementById('campaign-subject').value = template.subject;
+        document.getElementById('campaign-content').value = template.content;
+    }
+}
+
+// Search and filter functions
+document.getElementById('search-contacts')?.addEventListener('input', function(e) {
+    filterContacts();
+});
+
+document.getElementById('filter-status')?.addEventListener('change', function(e) {
+    filterContacts();
+});
+
+function filterContacts() {
+    const searchTerm = document.getElementById('search-contacts')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('filter-status')?.value || '';
+    
+    let filteredContacts = contacts;
+    
+    if (searchTerm) {
+        filteredContacts = filteredContacts.filter(contact => 
+            contact.email.toLowerCase().includes(searchTerm) ||
+            (contact.nom + ' ' + contact.prenom).toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (statusFilter) {
+        filteredContacts = filteredContacts.filter(contact => contact.status === statusFilter);
+    }
+    
+    // Update table with filtered results
+    const tbody = document.getElementById('contacts-tbody');
+    if (filteredContacts.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <i data-lucide="search" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                    <p>Aucun contact trouvé avec ces critères</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = filteredContacts.map(contact => `
+            <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="py-3 px-4 text-gray-900 dark:text-white">${contact.email}</td>
+                <td class="py-3 px-4 text-gray-900 dark:text-white">${contact.nom} ${contact.prenom}</td>
+                <td class="py-3 px-4">
+                    <span class="inline-block px-2 py-1 text-xs rounded-full ${getContactStatusColor(contact.status)}">
+                        ${getContactStatusText(contact.status)}
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-gray-600 dark:text-gray-400">${contact.dateAdded}</td>
+                <td class="py-3 px-4">
+                    <button onclick="editContact('${contact.email}')" class="text-primary hover:text-primary-dark mr-2">
+                        <i data-lucide="edit" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteContact('${contact.email}')" class="text-red-600 hover:text-red-800">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    lucide.createIcons();
+}
+
+// Placeholder functions for future features
+function editContact(email) {
+    showNotification('Fonction d\'édition en développement', 'info');
+}
+
+function deleteContact(email) {
+    const index = contacts.findIndex(c => c.email === email);
+    if (index > -1) {
+        contacts.splice(index, 1);
+        updateContactsTable();
+        updateAnalytics();
+        updateDashboard();
+        showNotification('Contact supprimé', 'success');
+    }
+}
+
+function viewCampaign(id) {
+    showNotification('Vue détaillée en développement', 'info');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+    updateDashboard();
+    
+    // Set default active nav
+    document.querySelector('.nav-item').classList.add('bg-primary', 'text-white');
+});
+</script>
+
+</body>
+</html>
