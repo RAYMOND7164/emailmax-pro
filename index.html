@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmailMax Pro - Plateforme Email Marketing</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📧</text></svg>">
+    <script src="https://unpkg.com/tailwindcss@^4.0.0/standalone/index.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        tailwind.config = {
+        window.tailwind = {
             theme: {
                 extend: {
                     colors: {
@@ -16,8 +17,7 @@
                         'primary-dark': '#4A4ACC'
                     }
                 }
-            },
-            darkMode: 'class'
+            }
         }
     </script>
     <style>
@@ -528,7 +528,7 @@
 // Configuration API
 const SUPABASE_URL = 'https://mmkzsjrrhxyxqifxzdgw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ta3pzanJyaHh5eHFpZnh6ZGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMzU3NzMsImV4cCI6MjA3NzgxMTc3M30.xPCqWmN67sS-wagKqVUiyHVK95VvMpnpGSnQv_AKHp0';
-const BREVO_API_KEY = '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';
+const BREVO_API_KEY = 'xkeysib-09ad532087904333326a1612e16a8bf933de9ab';
 
 // Initialize Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
