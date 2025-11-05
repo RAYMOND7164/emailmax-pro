@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "serve -s .",
-    "build": "echo 'Build complete'"
+    "build": "mkdir -p public && cp index.html public/"
   },
   "dependencies": {},
   "keywords": ["email", "marketing", "newsletter"],
