@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmailMax Pro - Plateforme Email Marketing</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📧</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script>
@@ -43,6 +44,10 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600 dark:text-gray-300" id="user-email">admin@emailmax.fr</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full" id="api-status" title="Status API Brevo"></div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400" id="api-status-text">Vérification...</span>
+                    </div>
                     <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
                         <i data-lucide="moon" class="w-5 h-5 text-gray-600 dark:text-gray-300"></i>
                     </button>
@@ -523,6 +528,14 @@
 </div>
 
 <script>
+// Configuration Brevo
+const BREVO_CONFIG = {
+    apiKey: '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',
+    apiUrl: 'https://api.brevo.com/v3',
+    senderEmail: 'admin@emailmax.fr',
+    senderName: 'EmailMax Pro'
+};
+
 // Global state
 let currentSection = 'dashboard';
 let contacts = [];
@@ -536,6 +549,114 @@ let analytics = {
     unsubscribedContacts: 0,
     bouncedContacts: 0
 };
+
+// Brevo API functions
+async function testBrevoAPI() {
+    try {
+        const response = await fetch(`${BREVO_CONFIG.apiUrl}/account`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'api-key': BREVO_CONFIG.apiKey
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            updateAPIStatus(true, `Connecté: ${data.email}`);
+            console.log('Brevo API connected successfully:', data);
+            return true;
+        } else {
+            updateAPIStatus(false, 'Erreur API');
+            console.error('Brevo API error:', response.status);
+            return false;
+        }
+    } catch (error) {
+        updateAPIStatus(false, 'Connexion échouée');
+        console.error('Brevo API connection failed:', error);
+        return false;
+    }
+}
+
+function updateAPIStatus(connected, message) {
+    const statusIndicator = document.getElementById('api-status');
+    const statusText = document.getElementById('api-status-text');
+    
+    if (connected) {
+        statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500';
+        statusText.textContent = 'API OK';
+        statusText.title = message;
+    } else {
+        statusIndicator.className = 'w-3 h-3 rounded-full bg-red-500';
+        statusText.textContent = 'API Erreur';
+        statusText.title = message;
+    }
+}
+
+async function sendEmailViaBrevo(to, subject, htmlContent, textContent = '') {
+    try {
+        const response = await fetch(`${BREVO_CONFIG.apiUrl}/smtp/email`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'api-key': BREVO_CONFIG.apiKey
+            },
+            body: JSON.stringify({
+                sender: {
+                    name: BREVO_CONFIG.senderName,
+                    email: BREVO_CONFIG.senderEmail
+                },
+                to: Array.isArray(to) ? to : [{ email: to }],
+                subject: subject,
+                htmlContent: htmlContent,
+                textContent: textContent || htmlContent.replace(/<[^>]*>/g, '')
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, messageId: data.messageId };
+        } else {
+            const error = await response.json();
+            console.error('Email send error:', error);
+            return { success: false, error: error.message };
+        }
+    } catch (error) {
+        console.error('Email send failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function addContactToBrevo(email, attributes = {}) {
+    try {
+        const response = await fetch(`${BREVO_CONFIG.apiUrl}/contacts`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'api-key': BREVO_CONFIG.apiKey
+            },
+            body: JSON.stringify({
+                email: email,
+                attributes: attributes,
+                listIds: [], // Vous pouvez spécifier des listes ici
+                updateEnabled: true
+            })
+        });
+
+        if (response.ok || response.status === 204) {
+            return { success: true };
+        } else {
+            const error = await response.json();
+            console.error('Contact add error:', error);
+            return { success: false, error: error.message };
+        }
+    } catch (error) {
+        console.error('Contact add failed:', error);
+        return { success: false, error: error.message };
+    }
+}
 
 // Dark mode
 function toggleDarkMode() {
@@ -661,12 +782,11 @@ function parseCSV(csv) {
 }
 
 // Import contacts function
-function importContacts() {
+async function importContacts() {
     const method = document.querySelector('input[name="import-method"]:checked').value;
     let newContacts = [];
     
     if (method === 'csv') {
-        // CSV data is already parsed
         const csvFile = document.getElementById('csv-file').files[0];
         if (!csvFile) {
             showNotification('Veuillez sélectionner un fichier CSV', 'error');
@@ -674,7 +794,7 @@ function importContacts() {
         }
         
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const csv = e.target.result;
             const lines = csv.split('\n');
             
@@ -697,11 +817,10 @@ function importContacts() {
                 }
             }
             
-            processImport(newContacts);
+            await processImport(newContacts);
         };
         reader.readAsText(csvFile);
     } else {
-        // Manual input
         const emailsText = document.getElementById('manual-emails').value;
         const emailLines = emailsText.split('\n');
         
@@ -718,22 +837,36 @@ function importContacts() {
             }
         });
         
-        processImport(newContacts);
+        await processImport(newContacts);
     }
 }
 
-function processImport(newContacts) {
-    // Remove duplicates
+async function processImport(newContacts) {
     const existingEmails = contacts.map(c => c.email);
     const uniqueContacts = newContacts.filter(c => !existingEmails.includes(c.email));
     
-    contacts.push(...uniqueContacts);
+    // Add contacts to Brevo
+    let successCount = 0;
+    for (const contact of uniqueContacts) {
+        const result = await addContactToBrevo(contact.email, {
+            FIRSTNAME: contact.prenom,
+            LASTNAME: contact.nom
+        });
+        
+        if (result.success) {
+            contacts.push(contact);
+            successCount++;
+        }
+    }
     
-    // Update analytics
     updateAnalytics();
-    
     closeImportModal();
-    showNotification(`${uniqueContacts.length} contacts importés avec succès!`, 'success');
+    
+    if (successCount > 0) {
+        showNotification(`${successCount} contacts importés avec succès dans Brevo!`, 'success');
+    } else {
+        showNotification('Aucun nouveau contact à importer', 'info');
+    }
     
     // Reset form
     document.getElementById('csv-file').value = '';
@@ -786,7 +919,7 @@ async function createCampaign() {
     document.getElementById('campaign-form').reset();
 }
 
-// Send campaign function
+// Send campaign function with real Brevo integration
 async function sendCampaign(campaign) {
     const activeContacts = contacts.filter(c => c.status === 'active');
     
@@ -797,39 +930,68 @@ async function sendCampaign(campaign) {
     
     showProgressModal(activeContacts.length);
     
-    const batchSize = 50; // Send in batches
+    const batchSize = 10; // Reduced batch size for better reliability
     let sent = 0;
+    let failed = 0;
     
     for (let i = 0; i < activeContacts.length; i += batchSize) {
         const batch = activeContacts.slice(i, i + batchSize);
         
-        // Simulate sending emails
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Send emails via Brevo
+        for (const contact of batch) {
+            const htmlContent = campaign.content
+                .replace(/\[PRENOM\]/g, contact.prenom || 'Cher client')
+                .replace(/\[NOM\]/g, contact.nom || '')
+                .replace(/\[EMAIL\]/g, contact.email)
+                .replace(/\n/g, '<br>');
+            
+            const result = await sendEmailViaBrevo(
+                contact.email,
+                campaign.subject,
+                htmlContent
+            );
+            
+            if (result.success) {
+                sent++;
+            } else {
+                failed++;
+                console.error(`Failed to send to ${contact.email}:`, result.error);
+            }
+            
+            // Small delay between emails to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
         
-        sent += batch.length;
         updateProgress(sent, activeContacts.length);
         
-        // Simulate some opens and clicks
-        const opens = Math.floor(batch.length * (0.2 + Math.random() * 0.3));
-        const clicks = Math.floor(opens * (0.1 + Math.random() * 0.2));
-        
-        campaign.sent += batch.length;
-        campaign.opens += opens;
-        campaign.clicks += clicks;
+        // Delay between batches
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
+    // Simulate some opens and clicks for demo
+    const opens = Math.floor(sent * (0.2 + Math.random() * 0.3));
+    const clicks = Math.floor(opens * (0.1 + Math.random() * 0.2));
+    
+    campaign.sent = sent;
+    campaign.failed = failed;
+    campaign.opens = opens;
+    campaign.clicks = clicks;
     campaign.status = 'sent';
-    campaign.openRate = ((campaign.opens / campaign.sent) * 100).toFixed(1);
-    campaign.clickRate = ((campaign.clicks / campaign.sent) * 100).toFixed(1);
+    campaign.openRate = sent > 0 ? ((opens / sent) * 100).toFixed(1) : '0';
+    campaign.clickRate = sent > 0 ? ((clicks / sent) * 100).toFixed(1) : '0';
     
     // Update analytics
-    analytics.emailsSent += campaign.sent;
+    analytics.emailsSent += sent;
     analytics.openRate = ((campaigns.reduce((acc, c) => acc + c.opens, 0) / analytics.emailsSent) * 100).toFixed(1);
     analytics.clickRate = ((campaigns.reduce((acc, c) => acc + c.clicks, 0) / analytics.emailsSent) * 100).toFixed(1);
     
     setTimeout(() => {
         hideProgressModal();
-        showNotification(`Campagne "${campaign.name}" envoyée avec succès à ${campaign.sent} contacts!`, 'success');
+        if (failed > 0) {
+            showNotification(`Campagne "${campaign.name}" envoyée: ${sent} succès, ${failed} échecs`, 'warning');
+        } else {
+            showNotification(`Campagne "${campaign.name}" envoyée avec succès à ${sent} contacts via Brevo!`, 'success');
+        }
         updateDashboard();
         updateCampaignsGrid();
     }, 1000);
@@ -852,7 +1014,7 @@ function updateProgress(sent, total) {
     if (sent === total) {
         document.getElementById('progress-text').textContent = 'Envoi terminé!';
     } else {
-        document.getElementById('progress-text').textContent = `Envoi en cours... ${sent}/${total}`;
+        document.getElementById('progress-text').textContent = `Envoi en cours via Brevo... ${sent}/${total}`;
     }
 }
 
@@ -970,6 +1132,12 @@ function updateCampaignsGrid() {
                                 <span class="text-gray-600 dark:text-gray-400">Envoyés:</span>
                                 <span class="text-gray-900 dark:text-white">${campaign.sent}</span>
                             </div>
+                            ${campaign.failed > 0 ? `
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600 dark:text-gray-400">Échecs:</span>
+                                    <span class="text-red-600">${campaign.failed}</span>
+                                </div>
+                            ` : ''}
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Taux d'ouverture:</span>
                                 <span class="text-gray-900 dark:text-white">${campaign.openRate}%</span>
@@ -1054,6 +1222,7 @@ function showNotification(message, type = 'info') {
     notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
         type === 'success' ? 'bg-green-500 text-white' :
         type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-orange-500 text-white' :
         'bg-blue-500 text-white'
     }`;
     notification.textContent = message;
@@ -1243,6 +1412,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set default active nav
     document.querySelector('.nav-item').classList.add('bg-primary', 'text-white');
+    
+    // Test Brevo API connection
+    testBrevoAPI();
 });
 </script>
 
