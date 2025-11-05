@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EmailMax Pro - Plateforme Email Marketing</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📧</text></svg>">
-    <script src="https://unpkg.com/tailwindcss@^4.0.0/standalone/index.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        window.tailwind = {
+        tailwind.config = {
             theme: {
                 extend: {
                     colors: {
@@ -17,7 +15,8 @@
                         'primary-dark': '#4A4ACC'
                     }
                 }
-            }
+            },
+            darkMode: 'class'
         }
     </script>
     <style>
@@ -25,7 +24,6 @@
         .gradient-bg { background: linear-gradient(135deg, #5D5CDE 0%, #4A4ACC 100%); }
         .glass { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
         .card-hover:hover { transform: translateY(-2px); transition: all 0.3s ease; }
-        .auth-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     </style>
 </head>
 <body class="bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -525,17 +523,8 @@
 </div>
 
 <script>
-// Configuration API
-const SUPABASE_URL = 'https://mmkzsjrrhxyxqifxzdgw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ta3pzanJyaHh5eHFpZnh6ZGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMzU3NzMsImV4cCI6MjA3NzgxMTc3M30.xPCqWmN67sS-wagKqVUiyHVK95VvMpnpGSnQv_AKHp0';
-const BREVO_API_KEY = 'xkeysib-09ad532087904333326a1612e16a8bf933de9ab';
-
-// Initialize Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // Global state
 let currentSection = 'dashboard';
-let user = null;
 let contacts = [];
 let campaigns = [];
 let analytics = {
@@ -797,7 +786,7 @@ async function createCampaign() {
     document.getElementById('campaign-form').reset();
 }
 
-// Send campaign with Brevo API
+// Send campaign function
 async function sendCampaign(campaign) {
     const activeContacts = contacts.filter(c => c.status === 'active');
     
@@ -808,109 +797,42 @@ async function sendCampaign(campaign) {
     
     showProgressModal(activeContacts.length);
     
-    const batchSize = 10; // Brevo recommends smaller batches
+    const batchSize = 50; // Send in batches
     let sent = 0;
-    let errors = 0;
     
     for (let i = 0; i < activeContacts.length; i += batchSize) {
         const batch = activeContacts.slice(i, i + batchSize);
         
-        try {
-            // Send emails via Brevo API
-            await sendEmailBatch(batch, campaign);
-            sent += batch.length;
-            
-            // Simulate some opens and clicks for demo
-            const opens = Math.floor(batch.length * (0.2 + Math.random() * 0.3));
-            const clicks = Math.floor(opens * (0.1 + Math.random() * 0.2));
-            
-            campaign.sent += batch.length;
-            campaign.opens += opens;
-            campaign.clicks += clicks;
-            
-        } catch (error) {
-            console.error('Erreur envoi batch:', error);
-            errors += batch.length;
-            showNotification(`Erreur lors de l'envoi à ${batch.length} contacts`, 'error');
-        }
+        // Simulate sending emails
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
+        sent += batch.length;
         updateProgress(sent, activeContacts.length);
         
-        // Pause between batches to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Simulate some opens and clicks
+        const opens = Math.floor(batch.length * (0.2 + Math.random() * 0.3));
+        const clicks = Math.floor(opens * (0.1 + Math.random() * 0.2));
+        
+        campaign.sent += batch.length;
+        campaign.opens += opens;
+        campaign.clicks += clicks;
     }
     
     campaign.status = 'sent';
-    campaign.openRate = campaign.sent > 0 ? ((campaign.opens / campaign.sent) * 100).toFixed(1) : '0';
-    campaign.clickRate = campaign.sent > 0 ? ((campaign.clicks / campaign.sent) * 100).toFixed(1) : '0';
+    campaign.openRate = ((campaign.opens / campaign.sent) * 100).toFixed(1);
+    campaign.clickRate = ((campaign.clicks / campaign.sent) * 100).toFixed(1);
     
     // Update analytics
     analytics.emailsSent += campaign.sent;
-    if (analytics.emailsSent > 0) {
-        analytics.openRate = ((campaigns.reduce((acc, c) => acc + c.opens, 0) / analytics.emailsSent) * 100).toFixed(1);
-        analytics.clickRate = ((campaigns.reduce((acc, c) => acc + c.clicks, 0) / analytics.emailsSent) * 100).toFixed(1);
-    }
+    analytics.openRate = ((campaigns.reduce((acc, c) => acc + c.opens, 0) / analytics.emailsSent) * 100).toFixed(1);
+    analytics.clickRate = ((campaigns.reduce((acc, c) => acc + c.clicks, 0) / analytics.emailsSent) * 100).toFixed(1);
     
     setTimeout(() => {
         hideProgressModal();
-        const message = errors > 0 
-            ? `Campagne "${campaign.name}" envoyée à ${campaign.sent} contacts (${errors} erreurs)`
-            : `Campagne "${campaign.name}" envoyée avec succès à ${campaign.sent} contacts!`;
-        showNotification(message, errors > 0 ? 'warning' : 'success');
+        showNotification(`Campagne "${campaign.name}" envoyée avec succès à ${campaign.sent} contacts!`, 'success');
         updateDashboard();
         updateCampaignsGrid();
     }, 1000);
-}
-
-// Send email batch via Brevo API
-async function sendEmailBatch(contacts, campaign) {
-    const emailData = {
-        sender: {
-            name: "EmailMax Pro",
-            email: "raymond7164@gmail.com"
-        },
-        to: contacts.map(contact => ({
-            email: contact.email,
-            name: `${contact.prenom} ${contact.nom}`.trim() || contact.email
-        })),
-        subject: campaign.subject,
-        htmlContent: formatEmailContent(campaign.content, contacts[0]),
-        textContent: campaign.content.replace(/\[PRENOM\]/g, contacts[0].prenom || '')
-    };
-    
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'api-key': BREVO_API_KEY
-        },
-        body: JSON.stringify(emailData)
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Erreur Brevo: ${error.message || 'Erreur inconnue'}`);
-    }
-    
-    return await response.json();
-}
-
-// Format email content with personalization
-function formatEmailContent(content, contact) {
-    let formattedContent = content
-        .replace(/\[PRENOM\]/g, contact.prenom || 'Cher(e) contact')
-        .replace(/\[NOM\]/g, contact.nom || '')
-        .replace(/\[EMAIL\]/g, contact.email || '')
-        .replace(/\[DATE\]/g, new Date().toLocaleDateString('fr-FR'))
-        .replace(/\[UNSUBSCRIBE_LINK\]/g, '#unsubscribe')
-        .replace(/\n/g, '<br>');
-    
-    // Simple HTML wrapper
-    return `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            ${formattedContent}
-        </div>
-    `;
 }
 
 // Progress modal functions
