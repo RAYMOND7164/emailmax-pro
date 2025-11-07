@@ -633,8 +633,7 @@
 </div>
 
 <script>
-// Configuration sécurisée pour l'API Brevo
-// L'API sera fournie via variables d'environnement Vercel
+// Configuration sécurisée Brevo API 
 let BREVO_API_KEY = null;
 
 // Fonction pour récupérer la clé API de manière sécurisée
@@ -650,11 +649,17 @@ async function getBrevoApiKey() {
             return BREVO_API_KEY;
         }
     } catch (error) {
-        console.warn('API backend non disponible, utilisation mode démo');
+        console.warn('API backend non disponible');
     }
     
-    // Mode démo - API simulée
-    return 'demo-mode';
+    // Fallback - demander à l'utilisateur de configurer la clé
+    const apiKey = prompt('Veuillez entrer votre clé API Brevo:');
+    if (apiKey) {
+        BREVO_API_KEY = apiKey;
+        return BREVO_API_KEY;
+    }
+    
+    throw new Error('Clé API Brevo requise');
 }
 
 // État global de l'application
@@ -1534,34 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('.nav-item').classList.add('bg-primary', 'text-white');
     document.querySelector('.nav-item').classList.remove('text-gray-700', 'dark:text-gray-300');
     
-    // Données de démonstration
-    const demoContacts = [
-        {
-            email: 'demo@example.com',
-            nom: 'Dupont',
-            prenom: 'Jean',
-            status: 'active',
-            dateAdded: new Date().toLocaleDateString('fr-FR')
-        },
-        {
-            email: 'test@example.com',
-            nom: 'Martin',
-            prenom: 'Marie',
-            status: 'active',
-            dateAdded: new Date().toLocaleDateString('fr-FR')
-        }
-    ];
-    
-    // Charger les données de démo après 2 secondes
-    setTimeout(() => {
-        if (contacts.length === 0) {
-            contacts.push(...demoContacts);
-            updateAnalytics();
-            updateDashboard();
-            updateContactsTable();
-            showNotification('Données de démonstration chargées', 'info');
-        }
-    }, 2000);
+    // Application prête - pas de données de démonstration
 });
 </script>
 
