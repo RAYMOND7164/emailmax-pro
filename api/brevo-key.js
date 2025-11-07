@@ -1,10 +1,8 @@
 export default function handler(req, res) {
-  // Ajouter les headers CORS pour permettre les requêtes depuis le frontend
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Gérer les requêtes OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
